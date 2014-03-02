@@ -1,5 +1,5 @@
 public class MyHashMap<K,V>{
-	private Entry table[];
+	protected Entry table[];
 	private static final int DEFAULT_INIT_CAPACITY = 16;
 	private static final float LOAD_FACTOR = 0.75f;
 	public static int threshold;
@@ -9,46 +9,48 @@ public class MyHashMap<K,V>{
 		table = new Entry[DEFAULT_INIT_CAPACITY];
 		size = 0;
 	}
-	public int indexFor(int hashcode, int length){
-		int index = hashcode&length;
-		//System.out.println("hashcode=" + hashcode + " length: " + length +  " Index> " + index);
+	protected int size(){
+		return size;
+	}
+	protected int indexFor(int hashcode, int length){
+		int index = hashcode&(length-1);
 		return index;
 	}
-	public V get(K key){
-		int index = indexFor(key.hashCode(),table.length-1);
+	protected Entry<K,V> getEntry(K key){
+		int index = indexFor(key.hashCode(),table.length);
 		Entry<K,V> entry = table[index];
 		while(entry != null){
 			if(entry.key.equals(key)){
-				return entry.value;
+				return entry;
 			}
-			entry = entry.after;
+			entry = entry.next;
 		}
 		return null;
 	}
-	public void put(K key, V value){
-		int index = indexFor(key.hashCode(),table.length-1);
-		Entry<K,V> entry = table[index];
+	public V get(K key){
+		Entry<K,V> entry = getEntry(key);
 		if(entry == null){
-			table[index] = new Entry<K,V>(key,value);
-			size++;
-		}else if(containsKey(key)){
+			return null;
+		}
+		return entry.value;	
+	}
+	public void put(K key, V value){
+		int index = indexFor(key.hashCode(),table.length);
+		Entry<K,V> entry = table[index];
+		if(containsKey(key)){
 			
 			//update
 			while(entry != null){
 				if(entry.key.equals(key)){
 					entry.value = value;
+					entry.registerAccess(this);
 					break;
 				}
-				entry = entry.after;
+				entry = entry.next;
 			}
 		}else{
-			//insert
 			
-			while(entry.after != null){
-				entry = entry.after;
-			}
-			entry.after = new Entry<K,V>(key,value);
-			size++;
+			createEntry(key,value,index);
 		
 		}
 		
@@ -58,8 +60,14 @@ public class MyHashMap<K,V>{
 			
 		
 	}
+	protected void createEntry(K key, V value, int index){
+			Entry<K,V> entry = table[index];
+			table[index] = new Entry<K,V>(key,value,entry);
+			//System.out.println("Create Entry> " + table[index] + " ---> ext --> "+ entry);
+			size++;
+	}
 	public boolean containsKey(K key){
-		int index = indexFor(key.hashCode(),table.length-1);
+		int index = indexFor(key.hashCode(),table.length);
 		Entry<K,V> entry = table[index];
 		if(entry == null){
 			return false;
@@ -68,58 +76,57 @@ public class MyHashMap<K,V>{
 				if(entry.key.equals(key)){
 					return true;
 				}
-				entry = entry.after;
+				entry = entry.next;
+				
 			}
 		}
 		
 		return false;
 	}
 	private void resize(int newCapacity){
-		System.out.println("Resizing to : " + newCapacity);
 		Entry newTable[] = new Entry[newCapacity];
 		transfer(newTable);
 		table = newTable;
 		threshold = (int)(newCapacity*LOAD_FACTOR);
 	} 
-	private void transfer(Entry newTable[]){
+	protected void transfer(Entry newTable[]){
 		for(int i = 0; i < table.length; i++){
 			if(table[i] != null){
 				Entry<K,V> current = table[i];
 				while(current != null){
 					Entry<K,V> entry = current;
-					current = current.after;
+					current = current.next;
 					
-					entry.after = null; // sanity
-					int index = indexFor(entry.key.hashCode(),newTable.length-1);
-					if(newTable[index] == null){
-						newTable[index] = entry;
-					}else{
-						Entry<K,V> e = newTable[index];
-						while(e.after != null){
-							e = e.after;
-						}
-						e.after = entry;
-					}
+					int index = indexFor(entry.key.hashCode(),newTable.length);
+					entry.next = newTable[index];
+					newTable[index] = entry; 
 					
 				}
 			}
 		}
 	}
 	public void removeKey(K key){
+		
 		if(containsKey(key)){
-			
-			int index = indexFor(key.hashCode(),table.length-1);
+		        System.out.println("Remo??" + key);
+			int index = indexFor(key.hashCode(),table.length);
 			Entry<K,V> entry = table[index];
 			if(entry.key.equals(key)){
 				
-				table[index] = entry.after;
+				table[index] = entry.next;
+				entry.removeme(this);
 			}else{
-				while(entry.after.key.equals(key) == false){
-					entry = entry.after;
+				while(entry.next.key.equals(key) == false){
+					entry = entry.next;
 				}
-				entry.after = entry.after.after;
+				Entry<K,V> target = entry.next;
+				entry.next = entry.next.next;
+				
+				target.removeme(this);
 			}
 			size--;
+		}else{
+			System.out.println("The following key what not found, so this could not be removed> " + key);
 		}
 	}
 	public void printTable(){
@@ -130,21 +137,26 @@ public class MyHashMap<K,V>{
 				System.out.print("["+i+"]");
 				while(entry != null){
 					System.out.print(entry + " ");
-					entry = entry.after;
+					entry = entry.next;
 				}
 				System.out.println();		
 			}
 		}
 	}
 	
-	class Entry<K,V>{
+	static class Entry<K,V>{
 		public K key;
 		public V value;
-		public Entry<K,V> after;
-		public Entry(K k, V v){
+		public Entry<K,V> next;
+		public Entry(K k, V v, Entry<K,V> next){
 			key = k;
 			value = v;
-			after = null;
+			this.next = next;
+		}
+		
+		protected void registerAccess(MyHashMap<K,V> hashmap){
+		}
+		protected void removeme(MyHashMap<K,V> hashmap){
 		}
 		public String toString(){
 			return "[key = "+key+", Value = "+value+", hashcode="+key.hashCode()+"]";
@@ -170,34 +182,24 @@ public class MyHashMap<K,V>{
 		hashmap.put("dieciseis","sixteen");
 		hashmap.put("axeliux","Axeliux");
 		hashmap.printTable();
-		hashmap.put("17","17");
-		hashmap.put("18","18");
-		hashmap.put("19","19");
-		hashmap.put("20","20");
-		hashmap.put("21","21");		
-		hashmap.put("22","22");
-		hashmap.put("23","23");
-		hashmap.put("24","24");
-		hashmap.put("25","25");
-		hashmap.put("26","26");
-		hashmap.put("27","27");
-		hashmap.put("28","28");
-		hashmap.put("29","29");
-		hashmap.put("30","30");
-		hashmap.put("31","31");
-		hashmap.put("32","32");
-		hashmap.put("axeliux","Axel David Velazquez Huerta");
-		hashmap.printTable();
-		hashmap.removeKey("30");
-		hashmap.removeKey("dieciseis");
-		hashmap.removeKey("siete");
-		hashmap.removeKey("23");
-		hashmap.removeKey("doce");
-		hashmap.printTable();
-		System.out.println(hashmap.get("30"));
-		System.out.println(hashmap.get("dieciseis"));
+
+		
+		System.out.println(hashmap.get("uno"));
+		System.out.println(hashmap.get("dos"));
+		System.out.println(hashmap.get("tres"));
+		System.out.println(hashmap.get("cuatro"));
+		System.out.println(hashmap.get("cinco"));
+		System.out.println(hashmap.get("seis"));
 		System.out.println(hashmap.get("siete"));
-		System.out.println(hashmap.get("23"));
+		System.out.println(hashmap.get("ocho"));
+		System.out.println(hashmap.get("nueve"));
+		System.out.println(hashmap.get("diez"));
 		System.out.println(hashmap.get("doce"));
+		System.out.println(hashmap.get("trece"));
+		System.out.println(hashmap.get("catroce"));
+		System.out.println(hashmap.get("quince"));
+		System.out.println(hashmap.get("dieciseis"));
+		System.out.println(hashmap.get("axeliux"));
+		
 	}
 }
