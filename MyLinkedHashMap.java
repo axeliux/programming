@@ -1,3 +1,9 @@
+/**
+ * LinkedHashMap
+ * This implementation spares its clients from the unspecified, 
+ * generally chaotic ordering provided by HashMap (and Hashtable),
+ * without incurring the increased cost associated with TreeMap. 
+ **/
 public class MyLinkedHashMap<K,V> extends MyHashMap<K,V>{
 	public Entry<K,V> head;
 	
