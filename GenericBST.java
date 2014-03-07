@@ -211,6 +211,76 @@ public class GenericBST<K>{
 		}
 	}
 	
+	public int inRange(K low, K high){
+		if(contains(high)){
+			return rank(high) - rank(low) + 1;
+		}else{
+			return rank(high) - rank(low);
+		}
+	}
+	
+	public boolean contains(K key){
+			return contains(root,key);
+	}
+	private boolean contains(Entry<K> root,K key){
+		if(root == null) return false;
+		
+		@SuppressWarnings("unchecked")
+		Comparable<? super K> k = (Comparable<? super K>)key;
+		int cmp = k.compareTo(root.key);
+		if(cmp == 0){
+			return true;
+			
+		}else if(cmp < 0){
+			return contains(root.left,key);
+		}else{
+			return contains(root.right,key);
+		}
+	}
+	public void range(K low, K high){
+		range(root,low,high);
+	}
+	public void range(Entry<K> root, K low, K high){
+		if(root == null) return;
+		
+		@SuppressWarnings("unchecked")
+		Comparable<? super K> k_l = (Comparable<? super K>)low;
+		@SuppressWarnings("unchecked")
+		Comparable<? super K> k_h = (Comparable<? super K>)high;
+		
+		int k_l_cmp = k_l.compareTo(root.key);
+		int k_h_cmp = k_h.compareTo(root.key);
+		
+		if(k_l_cmp < 0)
+			range(root.left,low,high);
+		
+		if( k_l_cmp <= 0  && k_h_cmp >= 0){
+				System.out.print(root);
+		}
+		if(k_h_cmp > 0)
+			range(root.right,low,high);
+		
+		
+	}
+	public void kLargest(Integer k){
+		kLargest(root,k);
+	}
+	static int var = 0;
+	private void kLargest(Entry<K> root, Integer k){
+		if(root == null) return;
+		
+		kLargest(root.right,k);
+		
+			if(k > var++){
+				System.out.print(root + " k: " + var);
+			}else{
+			
+				return;
+			}
+			
+		
+		kLargest(root.left,k);
+	}
 	
 	
 	static class Entry<K>{
@@ -225,7 +295,7 @@ public class GenericBST<K>{
 			this.size = size;
 		}
 		public String toString(){
-			return " " + key.toString() + " ("+size+") ";
+			return " " + key.toString()+" ";// + " ("+size+") ";
 		}
 		
 	}
@@ -272,6 +342,17 @@ public class GenericBST<K>{
 		System.out.println("RANK 300: " + bst.rank(300));
 		System.out.println("RANK 756: " + bst.rank(756));
 		System.out.println("RANK 600: " + bst.rank(600));
+		System.out.println("contains 1002" + bst.contains(102));
+		System.out.println("RANK 1: " + bst.rank(1));
+		System.out.println("RANK 102: " + bst.rank(102));
+		System.out.println("In range of 1 and 102: " + bst.inRange(1,102));
+		
+		System.out.println("In range of 1 - 200: ");
+		bst.range(1,200);
+		System.out.println();
+		System.out.println("K Largest");
+		bst.kLargest(5);
+		
 		
 		
 	}
