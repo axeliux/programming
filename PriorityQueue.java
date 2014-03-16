@@ -32,7 +32,7 @@ public class PriorityQueue{
 		heap_increase_key(H,this.heapSize-1,tmpKey);
 	}
 	public void heapsort(){
-		for(int i = this.heapSize -1; i >= 1 ; i++ ){
+		for(int i = this.heapSize -1; i >= 1 ; i-- ){
 			swap(H,0,i);
 			heapify(H,0,i);
 		}
